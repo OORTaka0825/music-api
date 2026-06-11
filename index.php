@@ -158,15 +158,32 @@ function song2data($api, $song, $type, $id)
             break;
 
         case 'url':
-            $m_url = json_decode($api->url($id, 320))->url;
-            if ($m_url == '') break;
-            // url format
-            if ($api->server == 'netease') {
-                if ($m_url[4] != 's') $m_url = str_replace('http', 'https', $m_url);
-            }
+    $m_url = '';
 
-            $data = $m_url;
+    foreach ([320, 128, 192, 96] as $br) {
+        $result = json_decode($api->url($id, $br));
+        if (isset($result->url) && $result->url != '') {
+            $m_url = $result->url;
             break;
+        }
+    }
+
+    if ($m_url == '') {
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode([
+            'error' => 'empty music url',
+            'server' => $api->server,
+            'id' => $id
+        ], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
+    if (strpos($m_url, 'http://') === 0) {
+        $m_url = 'https://' . substr($m_url, 7);
+    }
+
+    $data = $m_url;
+    break;
 
         case 'pic':
             $data = json_decode($api->pic($id, 90))->url;
